@@ -52,17 +52,27 @@ ELEVENLABS_API_KEY=your_key_here
 
 ### Step 4: Register the MCP server
 
-Create `.mcp.json` **in your project root**:
+Add the MCP server to your **global** Claude Code config (`~/.claude/config.json`).
 
-```json
-{
-  "mcpServers": {
-    "docs-to-tutorial": {
-      "command": "node",
-      "args": ["docs-to-tutorial/mcp-server/dist/server.js"]
-    }
-  }
-}
+If the file doesn't exist yet, create it. If it already has other servers, add `docs-to-tutorial` to the existing `mcpServers` object.
+
+```bash
+# This command writes the correct config with absolute paths
+node -e "
+const path = require('path');
+const fs = require('fs');
+const configPath = path.join(require('os').homedir(), '.claude', 'config.json');
+const config = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, 'utf8')) : {};
+config.mcpServers = config.mcpServers || {};
+config.mcpServers['docs-to-tutorial'] = {
+  command: 'node',
+  args: [path.resolve('docs-to-tutorial/mcp-server/dist/server.js')],
+  cwd: path.resolve('docs-to-tutorial/mcp-server')
+};
+fs.mkdirSync(path.dirname(configPath), { recursive: true });
+fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+console.log('Written to', configPath);
+"
 ```
 
 ### Step 5: Install the skill
@@ -77,6 +87,8 @@ ln -s "$(pwd)/docs-to-tutorial/skill/SKILL.md" ~/.claude/skills/docs-to-tutorial
 > **Note:** The symlink must end in `.md` — Claude Code only recognises `.md` skill files.
 
 ### Step 6: Run it
+
+> **Restart required** — Claude Code loads skills and MCP servers at startup. If Claude Code is already running, quit and restart it.
 
 Start Claude Code **from your project root** (not from inside `docs-to-tutorial/`):
 
@@ -104,12 +116,14 @@ Then type:
 
 2. **Symlink target doesn't resolve** — the symlink must use an absolute path. Re-run the `ln -s` command from Step 5 while in your project root.
 
-3. **Wrong directory** — you must run `claude` from your project root, not from inside `docs-to-tutorial/`.
+3. **Didn't restart Claude Code** — skills are loaded at startup. Adding a skill file mid-session won't work. Quit Claude Code and start it again.
+
+4. **Wrong directory** — you must run `claude` from your project root, not from inside `docs-to-tutorial/`.
 
 ### MCP server not connecting
 
 1. Make sure you built it: `cd docs-to-tutorial/mcp-server && npm run build`
-2. Check `.mcp.json` exists in your project root with the correct path
+2. Check `~/.claude/config.json` has `docs-to-tutorial` in `mcpServers` with correct absolute paths. Re-run the Step 4 command from your project root.
 3. Restart Claude Code after changing settings
 
 ### Audio not generating
