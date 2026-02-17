@@ -103,6 +103,8 @@ Start Claude Code **from your project root** (not from inside `docs-to-tutorial/
 claude
 ```
 
+Claude Code will prompt you to **allow the MCP tools** on first run — type `y` to approve them.
+
 Then type:
 
 ```
