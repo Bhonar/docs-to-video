@@ -50,15 +50,13 @@ cd ../..
 
 ### Step 3: Add your API keys
 
+Replace `YOUR_TABSTACK_KEY` and `YOUR_ELEVENLABS_KEY` with your actual keys:
+
 ```bash
-cp docs-to-tutorial/mcp-server/.env.example docs-to-tutorial/mcp-server/.env
-```
-
-Edit `docs-to-tutorial/mcp-server/.env` and fill in your keys:
-
-```env
-TABSTACK_API_KEY=your_key_here
-ELEVENLABS_API_KEY=your_key_here
+cat > docs-to-tutorial/mcp-server/.env << 'EOF'
+TABSTACK_API_KEY=YOUR_TABSTACK_KEY
+ELEVENLABS_API_KEY=YOUR_ELEVENLABS_KEY
+EOF
 ```
 
 ### Step 4: Register the MCP server
