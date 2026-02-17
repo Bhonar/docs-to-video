@@ -91,12 +91,12 @@ Returns:
 
 **Then analyze the documentation:**
 
-1. **Content Type** — from `metadata.docType`:
-   - `quickstart` → fast-paced, 3-5 steps, ~30s video
-   - `tutorial` → step-by-step learning, 5-8 scenes, ~60s video
-   - `api-reference` → endpoint showcases, request/response examples, ~45s
-   - `guide` → concept explanations + code, ~60s
-   - `how-to` → problem/solution format, ~45s
+1. **Content Type** — from `metadata.docType` (one scene per step means more scenes):
+   - `quickstart` → 3-5 steps = 5-7 scenes (intro + steps + summary), ~45-60s video
+   - `tutorial` → 5-8 steps = 7-10 scenes, ~60-90s video
+   - `api-reference` → endpoint showcases, 4-6 scenes, ~45-60s
+   - `guide` → concept explanations + code, 6-10 scenes, ~60-90s
+   - `how-to` → problem/solution format, 5-8 scenes, ~45-60s
 
 2. **Parse the markdown** to identify:
    - Code blocks (language from fence markers)
@@ -111,18 +111,40 @@ Returns:
 
 ### Step 4: Write Narration Script & Generate Audio
 
-Write a narration script following the **tutorial arc**:
-- **Intro** (3-5s) — "Let's learn how to [topic] with [technology]"
+Write a narration script following the **tutorial arc**. Each paragraph becomes one scene — **one step per paragraph, one paragraph per scene**:
+
+- **Intro** (4-6s) — "Let's learn how to [topic] with [technology]"
 - **Overview** (5-8s) — What this covers, prerequisites
-- **Step-by-Step** (15-40s) — Walk through each step, narrating code
+- **Step 1** — First step only. "First, let's install..."
+- **Step 2** — Second step only. "Next, we'll configure..."
+- **Step 3** — Third step only. "Now let's create..."
+- ... (one paragraph per step, as many as the docs require)
 - **Key Takeaways** (5-8s) — Recap the important points
 - **Next Steps** (3-5s) — What to explore next, reference to docs
 
+**⚠️ CRITICAL:** Do NOT combine multiple steps into a single paragraph. Each step gets its own narration paragraph and its own visual scene. If the docs have 5 steps, the narration must have 5 separate step paragraphs.
+
+**⚠️ Pacing Variation — Match Duration to Complexity:**
+
+Not all steps are equal. Simple steps get short narration; complex steps get long narration. The narration length drives the scene duration (via `calculateMetadata`), so pacing is controlled here:
+
+| Step complexity | Narration length | Scene duration | Example |
+|----------------|-----------------|----------------|---------|
+| Simple command | 1-2 sentences (~15 words) | 4-5s | `npm install stripe` |
+| Config/setup | 2-3 sentences (~30 words) | 6-8s | Setting env variables |
+| Code with explanation | 3-5 sentences (~50 words) | 8-12s | Writing an API route |
+| Multi-part concept | 4-6 sentences (~60 words) | 10-14s | Explaining auth flow |
+
+Write shorter paragraphs for "do this" steps, longer paragraphs for "understand this" steps. The pacing variation makes the video feel natural — fast through the easy parts, slow through the hard parts.
+
 Guidelines:
 - Instructional tone, use "we" and "let's" (collaborative, not lecturing)
-- ~150 words/min, match content complexity
+- ~150 words/min for complex steps, ~180 words/min for simple steps
 - Mention specific function/class names from the code
-- Pause between major sections
+- Pause between major sections (separate paragraphs)
+- Every step paragraph should describe exactly what the viewer will see on screen
+- Simple steps: be concise, don't pad with filler
+- Complex steps: explain WHY, not just WHAT — the extra context justifies the longer scene
 
 **Call `generate_audio`** with:
 - `musicStyle` — `ambient` or `lo-fi`
@@ -141,31 +163,281 @@ Guidelines:
 
 ### Step 5: Design Tutorial Scenes
 
-Plan 5-8 scenes using the user's components discovered in Step 1.
+Plan scenes using the user's components discovered in Step 1.
 
-**Required scenes:**
-- **Intro** — Topic title + what you'll learn (use user's Heading, Text, Card components)
-- **2+ Content scenes** — Code walkthroughs or step-by-step instructions
-- **Summary** — Recap + next steps
+#### ⚠️ CRITICAL RULE: One Step Per Scene
 
-**Scene design approach:**
-For each scene, decide which of the user's components to use:
+**Every scene must explain exactly ONE step, ONE concept, or ONE action.** Never combine two steps side-by-side or stack multiple explanations in a single scene — this makes the video hard to follow.
 
-| Scene Type | User Components to Use |
-|-----------|----------------------|
-| Intro | Heading, Badge, Card, Container |
-| Code walkthrough | Code/CodeBlock (if user has one), Card, Text |
-| Step-by-step | numbered list with user's Text, Badge/Label, Alert |
-| Concept explanation | Card, Heading, Text, any diagram components |
-| Terminal/CLI | Code component or custom styled div |
-| Summary | Heading, list with checkmarks, Badge, Button (for CTA) |
+- ✅ Scene 1: "Install the package" → shows `npm install` command
+- ✅ Scene 2: "Set up your environment" → shows `.env` file
+- ✅ Scene 3: "Create the API route" → shows the code
+- ❌ Scene that shows install AND setup AND config together
+
+**If the docs have 6 steps, you need at least 8 scenes** (intro + 6 step scenes + summary). More steps = more scenes, never fewer.
+
+#### Progress Indicator (Required on Every Step Scene)
+
+Every step scene MUST include a persistent progress indicator so the viewer always knows where they are. Use a step counter ("Step 2 of 6") or a progress bar — it stays visible throughout all step scenes (not intro or summary).
+
+**Progress indicator pattern (include in every step scene component):**
+```typescript
+const StepIndicator: React.FC<{
+  current: number;
+  total: number;
+  colors: { primary: string; accent: string };
+}> = ({ current, total, colors }) => {
+  const frame = useCurrentFrame();
+  const slideIn = interpolate(frame, [0, 12], [-40, 0], { extrapolateRight: 'clamp' });
+  const opacity = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: 'clamp' });
+
+  return (
+    <div style={{
+      position: 'absolute', top: 32, right: 40,
+      display: 'flex', alignItems: 'center', gap: 12,
+      opacity, transform: `translateY(${slideIn}px)`,
+    }}>
+      {/* Step dots */}
+      {Array.from({ length: total }, (_, i) => (
+        <div key={i} style={{
+          width: i + 1 === current ? 32 : 10,
+          height: 10,
+          borderRadius: 5,
+          background: i + 1 <= current ? colors.primary : `${colors.primary}33`,
+          transition: 'none', // NO CSS transitions in Remotion
+        }} />
+      ))}
+      <span style={{
+        fontSize: 14, fontWeight: 600,
+        color: colors.primary, opacity: 0.8,
+      }}>
+        {current}/{total}
+      </span>
+    </div>
+  );
+};
+```
+
+Place `<StepIndicator current={2} total={6} colors={branding.colors} />` in every step scene. Skip it on intro and summary scenes.
+
+#### Every Explanation Gets a Visual Scene
+
+Every piece of information the narration mentions MUST have a corresponding visual scene. If the narration says "set up your environment variables", there must be a scene showing that. If it says "install the dependencies", there must be a scene showing the terminal command. **No narration without a matching visual.**
+
+Map narration → scenes 1:1:
+- Intro narration → Intro scene (title, badges, what you'll learn)
+- "First, install..." → Scene showing the install command
+- "Next, configure..." → Scene showing the config file
+- "Now let's create..." → Scene showing the code
+- Summary narration → Summary scene (recap checklist)
+
+#### Typing Effect for Code and Commands
+
+Any text that represents a command, code snippet, file path, or terminal output MUST use a typing/typewriter effect — characters appear one by one as if someone is typing. This makes the video interactive and easier to follow.
+
+**Typing effect pattern (use this in every code/command scene):**
+```typescript
+const TypingText: React.FC<{
+  text: string;
+  startFrame: number;
+  charsPerFrame?: number;
+}> = ({ text, startFrame, charsPerFrame = 0.5 }) => {
+  const frame = useCurrentFrame();
+  const elapsed = Math.max(0, frame - startFrame);
+  const charsToShow = Math.min(
+    Math.floor(elapsed * charsPerFrame),
+    text.length
+  );
+  const displayText = text.slice(0, charsToShow);
+  const showCursor = charsToShow < text.length;
+
+  return (
+    <span style={{ fontFamily: 'monospace' }}>
+      {displayText}
+      {showCursor && (
+        <span style={{ opacity: Math.floor(frame / 15) % 2 === 0 ? 1 : 0 }}>
+          ▌
+        </span>
+      )}
+    </span>
+  );
+};
+```
+
+Use typing effect for:
+- Terminal commands (`npm install`, `npx create-...`, `curl ...`)
+- Code snippets (function definitions, imports, config lines)
+- File paths and file names
+- API endpoints and URLs
+- Environment variable values
+
+#### Code Highlighting and Annotation
+
+When showing multi-line code snippets, don't give every line equal weight. **Highlight the important line and dim the rest** — this teaches the viewer where to focus, like a teacher pointing at a whiteboard.
+
+**Code highlight pattern (use for code walkthrough scenes):**
+```typescript
+const HighlightedCode: React.FC<{
+  lines: string[];
+  highlightLine: number; // 0-indexed
+  startFrame: number;
+  colors: { primary: string };
+}> = ({ lines, highlightLine, startFrame, colors }) => {
+  const frame = useCurrentFrame();
+  const elapsed = Math.max(0, frame - startFrame);
+  // First show all lines dimmed, then highlight kicks in
+  const highlightProgress = interpolate(elapsed, [20, 35], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  return (
+    <div style={{
+      background: '#1a1a2e', borderRadius: 8, padding: 20,
+      fontFamily: 'monospace', fontSize: 16, lineHeight: 1.7,
+    }}>
+      {lines.map((line, i) => {
+        const isHighlighted = i === highlightLine;
+        const dimOpacity = isHighlighted ? 1 : 1 - highlightProgress * 0.6;
+        return (
+          <div key={i} style={{
+            padding: '2px 8px',
+            opacity: dimOpacity,
+            background: isHighlighted ? `${colors.primary}22` : 'transparent',
+            borderLeft: isHighlighted ? `3px solid ${colors.primary}` : '3px solid transparent',
+          }}>
+            <span style={{ color: '#666', marginRight: 16 }}>{i + 1}</span>
+            <span style={{ color: isHighlighted ? '#fff' : '#aaa' }}>{line}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+```
+
+Use this pattern when:
+- Showing a function with one key line the narration explains
+- Displaying a config file where one field matters
+- Walking through an API response where one property is the focus
+
+The highlighted line should match what the narration is describing at that moment.
+
+#### Scene Types and Components
+
+| Scene Type | User Components to Use | Duration | Complexity |
+|-----------|----------------------|----------|------------|
+| Intro | Heading, Badge, Card, Container | 4-6s | — |
+| Install/Setup | Code/Terminal with **typing effect**, Card | 4-6s | Simple |
+| Config/Environment | Code with **typing effect**, Badge/Label | 6-8s | Medium |
+| Code walkthrough | Code with **typing + highlight**, Card, Text | 8-12s | Complex |
+| Concept explanation | Card, Heading, Text, diagram components | 8-12s | Complex |
+| Terminal output (result) | Simulated terminal with success output | 3-5s | Simple |
+| Callout (warning/tip) | CalloutScene component | 3-4s | — |
+| Summary | Heading, checkmark list, Badge, Button (CTA) | 5-8s | — |
 
 **If the user doesn't have a component you need** (e.g., no CodeBlock), build it inline in Generated.tsx using their styling patterns (same font, colors, border-radius, shadows).
+
+#### Before/After: Show the Result
+
+Tutorials don't just show code — they show **what happens when you run it**. After a command or code scene, add a result scene that shows the output or effect. This is the cause-and-effect pattern.
+
+**Patterns to use:**
+- After `npm install` → show a simulated terminal with `✓ Successfully installed 3 packages`
+- After creating a file → show a simulated file tree with the new file highlighted
+- After writing an API route → show a mock browser/Postman-style card with the response JSON
+- After configuring `.env` → show a "ready" status or checkmark confirmation
+- After a build command → show a success message or the running app
+
+**Terminal output scene pattern:**
+```typescript
+const TerminalOutputScene: React.FC<{ command: string; output: string; colors: any }> = ({ command, output, colors }) => {
+  const frame = useCurrentFrame();
+  // Command is already typed, output appears after a delay
+  const outputOpacity = interpolate(frame, [30, 45], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  return (
+    <AbsoluteFill style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: '#0d1117',
+    }}>
+      <div style={{ width: '75%' }}>
+        <div style={{
+          background: '#161b22', borderRadius: 8, padding: 24,
+          fontFamily: 'monospace', fontSize: 18,
+        }}>
+          <div style={{ color: '#8b949e' }}>$ {command}</div>
+          <div style={{ color: '#3fb950', marginTop: 12, opacity: outputOpacity }}>
+            {output}
+          </div>
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+```
+
+**Not every step needs an output scene** — use them for:
+- Install/build commands (always show success)
+- Creating files or endpoints (show the result)
+- Running the app (show a mock browser)
+
+Skip output scenes for config-only steps where the result isn't visual.
+
+#### Contextual Callouts for Warnings, Tips, and Notes
+
+Documentation often contains `> ⚠️ Warning`, `> 💡 Tip`, or `> Note:` blocks. These MUST become distinct visual moments — a callout card that slides in, pauses, then fades. Don't bury them inside a regular content scene.
+
+**Callout scene pattern:**
+```typescript
+const CalloutScene: React.FC<{
+  type: 'warning' | 'tip' | 'note';
+  message: string;
+  colors: any;
+}> = ({ type, message, colors }) => {
+  const frame = useCurrentFrame();
+
+  const config = {
+    warning: { bg: '#fef3cd', border: '#f59e0b', icon: '⚠️', label: 'Warning' },
+    tip:     { bg: '#d1fae5', border: '#10b981', icon: '💡', label: 'Pro Tip' },
+    note:    { bg: '#dbeafe', border: '#3b82f6', icon: '📝', label: 'Note' },
+  }[type];
+
+  // Slide in from right
+  const slideX = interpolate(frame, [0, 18], [80, 0], { extrapolateRight: 'clamp' });
+  const opacity = interpolate(frame, [0, 12], [0, 1], { extrapolateRight: 'clamp' });
+
+  return (
+    <AbsoluteFill style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: `${colors.primary}0a`,
+    }}>
+      <div style={{
+        opacity, transform: `translateX(${slideX}px)`,
+        background: config.bg, borderLeft: `4px solid ${config.border}`,
+        borderRadius: 8, padding: '24px 32px', maxWidth: '70%',
+      }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: config.border, marginBottom: 8 }}>
+          {config.icon} {config.label}
+        </div>
+        <div style={{ fontSize: 22, color: '#1a1a1a', lineHeight: 1.5 }}>
+          {message}
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+```
+
+Use callout scenes when the docs contain:
+- Warnings about common mistakes or breaking changes
+- Tips that save time or improve results
+- Notes about prerequisites or version requirements
+
+These can be short (3-4s) but they MUST be their own scene — never embed a callout inside a code scene.
 
 **Layout rules:**
 - Use at least 3 different layouts across scenes
 - Layouts: centered, split (60/40), stacked, grid, full-bleed
 - Use the user's Container/Layout components for consistent spacing
+- Each scene should feel spacious — don't cram content
 
 ---
 
@@ -234,18 +506,40 @@ export const Generated: React.FC<TutorialVideoProps> = ({
 };
 ```
 
-**Using user's components in Remotion:**
+**⚠️ Staged Reveals: Visual Hierarchy Within Scenes**
 
-The user's components are regular React components. Wrap them in Remotion animation logic:
+**NEVER show all elements at once.** Every scene must stage its elements — first the title, then a beat later the code, then the highlight. This layered reveal guides the viewer's eye like a teacher pointing at a whiteboard.
+
+**Staging rules:**
+1. **Frame 0-15:** Background + scene container fade in
+2. **Frame 10-25:** Title/heading appears (spring or fade)
+3. **Frame 20-40:** Step badge or label slides in
+4. **Frame 30+:** Main content (code, config, etc.) appears — with typing effect if code
+5. **Frame 50+:** Highlight or annotation kicks in on the key line
+
+Each element starts its animation 10-15 frames AFTER the previous one. Never animate two elements at the same time.
+
+**Using user's components in Remotion — with staged reveals:**
+
+The user's components are regular React components. Wrap them in Remotion animation logic with staggered timing:
 
 ```typescript
-// Animate a user's Card component
+// Staged intro — elements appear one by one
 const IntroScene: React.FC<{ colors: any; width: number; height: number }> = ({ colors, width, height }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
+  // Stage 1: card container (frame 0)
   const cardScale = spring({ frame, fps, from: 0.8, to: 1, config: { damping: 12 } });
   const cardOpacity = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: 'clamp' });
+
+  // Stage 2: title text (frame 12 — after card is visible)
+  const titleOpacity = interpolate(frame, [12, 25], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const titleSlide = interpolate(frame, [12, 25], [20, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  // Stage 3: badges (frame 25 — after title is visible)
+  const badgeOpacity = interpolate(frame, [25, 38], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const badgeSlide = interpolate(frame, [25, 38], [15, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   return (
     <AbsoluteFill style={{
@@ -254,10 +548,14 @@ const IntroScene: React.FC<{ colors: any; width: number; height: number }> = ({ 
     }}>
       <div style={{ transform: `scale(${cardScale})`, opacity: cardOpacity }}>
         <Card className="p-8 max-w-2xl">
-          <h1 style={{ fontSize: height * 0.08, fontWeight: 700 }}>
-            {content.title}
-          </h1>
-          <div className="flex gap-2 mt-4">
+          {/* Stage 2: title */}
+          <div style={{ opacity: titleOpacity, transform: `translateY(${titleSlide}px)` }}>
+            <h1 style={{ fontSize: height * 0.08, fontWeight: 700 }}>
+              {content.title}
+            </h1>
+          </div>
+          {/* Stage 3: badges */}
+          <div className="flex gap-2 mt-4" style={{ opacity: badgeOpacity, transform: `translateY(${badgeSlide}px)` }}>
             <Badge>Tutorial</Badge>
             <Badge variant="outline">{content.technology}</Badge>
           </div>
@@ -267,6 +565,71 @@ const IntroScene: React.FC<{ colors: any; width: number; height: number }> = ({ 
   );
 };
 ```
+
+**Code/Command scene with staged reveal + typing effect (REQUIRED for all code/terminal scenes):**
+
+```typescript
+const InstallScene: React.FC<{
+  colors: any;
+  stepNumber: number;
+  totalSteps: number;
+}> = ({ colors, stepNumber, totalSteps }) => {
+  const frame = useCurrentFrame();
+
+  // Stage 1: card container (frame 0-10)
+  const cardOpacity = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: 'clamp' });
+
+  // Stage 2: title + badge (frame 8-20)
+  const titleOpacity = interpolate(frame, [8, 20], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const titleSlide = interpolate(frame, [8, 20], [15, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  // Stage 3: terminal appears (frame 22-32)
+  const termOpacity = interpolate(frame, [22, 32], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  // Stage 4: typing starts (frame 35+)
+  const command = 'npm install @stripe/stripe-js';
+  const typingElapsed = Math.max(0, frame - 35);
+  const charsToShow = Math.min(Math.floor(typingElapsed * 0.5), command.length);
+  const displayText = command.slice(0, charsToShow);
+  const showCursor = frame >= 35 && charsToShow < command.length;
+
+  return (
+    <AbsoluteFill style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: `linear-gradient(135deg, ${colors.primary}22, ${colors.secondary}22)`,
+    }}>
+      {/* Progress indicator */}
+      <StepIndicator current={stepNumber} total={totalSteps} colors={colors} />
+
+      <div style={{ opacity: cardOpacity, width: '80%' }}>
+        <Card className="p-8">
+          {/* Stage 2: title */}
+          <div style={{ opacity: titleOpacity, transform: `translateY(${titleSlide}px)` }}>
+            <Badge className="mb-4">Step {stepNumber}</Badge>
+            <h2 style={{ fontSize: 32, fontWeight: 700, marginBottom: 16 }}>
+              Install the SDK
+            </h2>
+          </div>
+          {/* Stage 3+4: terminal with typing */}
+          <div style={{
+            opacity: termOpacity,
+            background: '#1a1a2e', borderRadius: 8, padding: 24,
+            fontFamily: 'monospace', fontSize: 20, color: '#00ff88',
+          }}>
+            <span style={{ color: '#888' }}>$ </span>
+            {displayText}
+            {showCursor && (
+              <span style={{ opacity: Math.floor(frame / 15) % 2 === 0 ? 1 : 0 }}>▌</span>
+            )}
+          </div>
+        </Card>
+      </div>
+    </AbsoluteFill>
+  );
+};
+```
+
+**Remember:** Each scene above is ONE step. The install scene ONLY shows install. The next scene shows the next step. Never combine.
 
 **Remotion rules (see `remotion-best-practices` skill for full details):**
 - Audio: `import { Audio } from '@remotion/media'` — NOT from `remotion`
@@ -284,6 +647,7 @@ const IntroScene: React.FC<{ colors: any; width: number; height: number }> = ({ 
 
 **Validation checklist (must pass all):**
 
+**Remotion basics:**
 1. Audio imported from `@remotion/media` (not `remotion`)
 2. Audio uses `staticFile()` with `staticPath`
 3. Conditional audio rendering
@@ -293,9 +657,21 @@ const IntroScene: React.FC<{ colors: any; width: number; height: number }> = ({ 
 7. User's components are imported with correct relative paths
 8. User's components render without errors in Remotion context
 9. Scene durations calculated from fps
+
+**Scene structure:**
 10. Has intro scene and summary scene
-11. At least 2 content/code scenes
-12. Narration content matches visual progression
+11. **Each scene explains exactly ONE step** — no scene combines two steps
+12. **Every narration paragraph has a matching visual scene** — no explanation without a visual
+13. Narration content matches visual progression 1:1
+
+**Tutorial quality:**
+14. **All code/commands use typing effect** — characters appear one by one with blinking cursor
+15. **Multi-line code uses highlighting** — important line spotlighted, rest dimmed
+16. **Step scenes have a progress indicator** — StepIndicator showing "Step N of M"
+17. **Elements appear in stages** — title first, then badge, then code, then highlight (never all at once)
+18. **Command scenes have output/result scenes** — show what happens after running a command
+19. **Warnings/tips from docs are callout scenes** — distinct styled cards, not embedded in code scenes
+20. **Pacing varies by complexity** — simple steps are 4-5s, complex code walkthroughs are 8-12s
 
 **Call `render_video`** with:
 - `inputProps` — full props (content, branding, audio, metadata, duration)

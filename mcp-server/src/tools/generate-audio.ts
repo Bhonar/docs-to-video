@@ -171,7 +171,7 @@ async function generateNarrationElevenLabs(
   remotionProjectPath?: string,
 ): Promise<AudioResult['narration'] | null> {
   // ElevenLabs premade voices (professional narration)
-  const voiceId = process.env.ELEVENLABS_VOICE_ID || 'onwK4e9ZLuTAKqWW03F9'; // Daniel - professional male
+  const voiceId = process.env.ELEVENLABS_VOICE_ID || 'jsCqWAovK2LkecY7zXl4'; // Freya - expressive young woman
 
   console.error(`Using ElevenLabs TTS (voice: ${voiceId})...`);
 

@@ -88,8 +88,7 @@ Open (or create) `.claude/settings.local.json` **in your project root** (not ins
   "mcpServers": {
     "docs-to-tutorial": {
       "command": "node",
-      "args": ["docs-to-tutorial/mcp-server/dist/server.js"],
-      "env": {}
+      "args": ["docs-to-tutorial/mcp-server/dist/server.js"]
     }
   }
 }
@@ -97,20 +96,24 @@ Open (or create) `.claude/settings.local.json` **in your project root** (not ins
 
 ### Step 5: Install the skill
 
-The skill file tells Claude *how* to use the MCP tools step by step:
+The skill file tells Claude *how* to use the MCP tools step by step.
+
+> **Important:** The symlink must end in `.md` — Claude Code only recognises skill files with a `.md` extension.
 
 ```bash
 # From your project root
 mkdir -p .claude/skills
-ln -s ../../docs-to-tutorial/skill/SKILL.md .claude/skills/docs-to-tutorial
+ln -s ../../docs-to-tutorial/skill/SKILL.md .claude/skills/docs-to-tutorial.md
 ```
 
 ### Step 6: Verify it works
 
-Restart Claude Code (or start a new session) in your project root:
+> **You must run Claude Code from your project root** — not from inside `docs-to-tutorial/`. The MCP server needs to find your components, and the skill needs to scaffold `remotion/` in your project. Running from the wrong directory is the most common setup mistake.
+
+Restart Claude Code (or start a new session) **in your project root**:
 
 ```bash
-cd /path/to/my-react-app
+cd /path/to/my-react-app   # <-- your project root, NOT docs-to-tutorial/
 claude
 ```
 
@@ -215,6 +218,26 @@ This opens a browser where you can scrub through the video frame by frame.
 ---
 
 ## Troubleshooting
+
+### "Unknown skill" when running `/docs-to-tutorial`
+
+Two common causes:
+
+1. **Symlink doesn't end in `.md`** — Claude Code only recognises `.md` skill files. Check with:
+   ```bash
+   ls -la .claude/skills/
+   ```
+   You should see `docs-to-tutorial.md -> ../../docs-to-tutorial/skill/SKILL.md`. If the symlink is named `docs-to-tutorial` (no `.md`), fix it:
+   ```bash
+   rm .claude/skills/docs-to-tutorial
+   ln -s ../../docs-to-tutorial/skill/SKILL.md .claude/skills/docs-to-tutorial.md
+   ```
+
+2. **Running Claude Code from the wrong directory** — You must be in your project root (where `docs-to-tutorial/` is a subdirectory), not inside `docs-to-tutorial/` itself:
+   ```bash
+   cd /path/to/my-react-app   # NOT /path/to/my-react-app/docs-to-tutorial
+   claude
+   ```
 
 ### "Remotion project not found"
 

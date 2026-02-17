@@ -177,7 +177,7 @@ The `webpackOverride: enableTailwind` in `render-video.ts` is **critical** — w
 
 ### ElevenLabs Specifics
 - `output_format` is a **query parameter**, not a body parameter: `POST /v1/music?output_format=mp3_44100_128`
-- Default voice: `onwK4e9ZLuTAKqWW03F9` (Daniel — professional male, good for tutorials)
+- Default voice: `jsCqWAovK2LkecY7zXl4` (Freya — expressive young woman, good for tutorials)
 - Model: `eleven_multilingual_v2` for TTS, `music_v1` for music
 - Responses are raw binary audio (`responseType: 'arraybuffer'`)
 
@@ -266,7 +266,7 @@ npm run build
 
 4. **`extractColorsFromScreenshot` is basic** — Uses sharp's single dominant color. A production implementation would use k-means clustering for a proper 4-color palette extraction.
 
-5. **Narration voice is hardcoded** — The `ELEVENLABS_VOICE_ID` env var works, but SKILL.md doesn't mention it. Claude always uses the Daniel voice unless the user manually sets the env var.
+5. **Narration voice is configurable** — Defaults to Freya (expressive young woman). Override with `ELEVENLABS_VOICE_ID` env var for a different voice.
 
 6. **No video preview before render** — The user can run `cd remotion && npm run dev` to preview in Remotion Studio, but the SKILL.md workflow goes straight to render. Could add a preview step.
 
