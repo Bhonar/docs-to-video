@@ -296,9 +296,22 @@ const CalloutCard: React.FC<{
 
 #### Scene Design Rules
 
-> **⚠️ THE #1 RULE: ONE step, ONE idea, ONE scene.**
-> If a scene has more than ONE command, ONE code block, or ONE concept — you MUST split it into separate scenes.
-> A scene with a numbered list (Step 1, Step 2, Step 3…) is ALWAYS wrong. Each of those steps must be its own scene.
+> **⚠️ THE #1 RULE: Every sentence the narrator says must have a matching visual change on screen.**
+> The viewer should NEVER hear the narrator explain something while the screen stays static.
+> If the narration says "install the package", the screen must show the install command typing out at that moment.
+> If the narration says "create a file", the screen must show that file appearing at that moment.
+
+**Narration-to-visual sync:**
+- Split the narration for each scene into individual sentences
+- Each sentence = a visual change (new element appears, text types out, highlight moves, etc.)
+- If a narration paragraph has 3 sentences, the scene must have 3 distinct visual moments
+- Use `useCurrentFrame()` to time each visual change to match when the narrator says it
+- NEVER have a scene where the narrator talks for 10+ seconds while the screen shows the same static content
+
+**ONE step, ONE idea, ONE scene:**
+- If a scene has more than ONE command, ONE code block, or ONE concept — SPLIT it
+- A scene with a numbered list (Step 1, Step 2, Step 3…) is ALWAYS wrong — each becomes its own scene
+- If narration for a step is longer than 3 sentences, split it into two scenes
 
 **Maximum content per scene:**
 - ONE title/heading
@@ -609,7 +622,9 @@ export const Generated: React.FC<TutorialVideoProps> = ({ content, branding, aud
 12. **No scene has a numbered list of steps** — if you see "1. … 2. … 3. …" in a scene, it must be split
 13. **Every scene has at least 30% empty space** — if it looks crowded, remove content or split
 14. **Every narration paragraph has a matching visual scene** — no explanation without a visual
-15. Narration content matches visual progression 1:1
+15. **Every sentence in the narration has a matching visual change** — the screen NEVER stays static while the narrator keeps talking
+16. **No scene has more than 3 sentences of narration** — if it does, split into two scenes
+17. Narration content matches visual progression 1:1
 
 **Tutorial quality:**
 16. **All code/commands use TypingText** — characters appear one by one with blinking cursor
