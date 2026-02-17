@@ -21,11 +21,22 @@ Turn any documentation URL into a polished tutorial video — using **your own R
 
 This tool runs **inside your existing project**. You must follow these steps from your project root.
 
-### Step 1: Clone into your project
+### Step 1: Clone into your project root
+
+Go to the folder that contains your `package.json` and `src/` — **not** inside `src/`:
 
 ```bash
-cd /path/to/my-react-app
+cd /path/to/my-react-app          # where package.json and src/ live
 git clone https://github.com/Bhonar/docs-to-tutorial.git docs-to-tutorial
+```
+
+Your project should now look like:
+
+```
+my-react-app/
+├── src/                  ← your code
+├── package.json
+└── docs-to-tutorial/     ← cloned here, next to src/
 ```
 
 ### Step 2: Build the MCP server
