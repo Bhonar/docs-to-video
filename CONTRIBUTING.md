@@ -8,7 +8,7 @@
 
 **Docs-to-Tutorial** turns any documentation URL into a polished MP4 tutorial video — using the user's **own React components** so the video matches their actual product's look and feel.
 
-It's built as an **MCP (Model Context Protocol) server** + **Claude Code Skill** + **Remotion template**. When a user types `/docs-to-tutorial https://docs.example.com/quickstart` in Claude Code, Claude orchestrates a 7-step pipeline: scan the codebase → scaffold a Remotion project → extract the docs → generate audio → design scenes → write a composition → render to MP4.
+It's built as an **MCP (Model Context Protocol) server** + **Claude Code Skill** + **Remotion template**. When a user types `/docs-to-tutorial https://docs.example.com/quickstart` in Claude Code, Claude orchestrates a 6-step pipeline: scan the codebase → scaffold a Remotion project → extract the docs → generate audio → design & write scenes → render to MP4.
 
 ### Architecture at a Glance
 
@@ -25,7 +25,7 @@ It's built as an **MCP (Model Context Protocol) server** + **Claude Code Skill**
 │  docs-to-tutorial/   ← this repo, cloned inside project  │
 │    mcp-server/       ← MCP server (runs in background)   │
 │    remotion-template/← template copied to remotion/      │
-│    skill/SKILL.md    ← 7-step workflow Claude follows    │
+│    skill/SKILL.md    ← 6-step workflow Claude follows    │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -66,13 +66,14 @@ Step 4: Claude writes narration script, then MCP Tool → generate_audio
   → Returns: { music, narration, beats, warnings }
   │
   ▼
-Step 5-6: Claude designs scenes, writes Generated.tsx
+Step 5: Claude designs scenes & writes Generated.tsx
   → Imports user's components with relative paths
   → Uses Remotion animation APIs (spring, interpolate, TransitionSeries)
   → Mounts <Audio> with staticFile() paths to saved MP3s
+  → Includes: StepIndicator, TypingText, HighlightedCode, CalloutCard, staged reveals
   │
   ▼
-Step 7: MCP Tool → render_video
+Step 6: MCP Tool → render_video
   → bundle() with Tailwind webpack override
   → selectComposition() triggers calculateMetadata
     → Reads actual narration duration → sets durationInFrames
@@ -151,7 +152,7 @@ The `webpackOverride: enableTailwind` in `render-video.ts` is **critical** — w
 
 | File | Purpose |
 |------|---------|
-| `skill/SKILL.md` | The 7-step workflow Claude follows. Describes what each step does, what tool to call, what params to pass, and what to do with the results. |
+| `skill/SKILL.md` | The 6-step workflow Claude follows. Describes what each step does, what tool to call, what params to pass, and what to do with the results. Includes complete Generated.tsx example with reusable components. |
 | `README.md` | User-facing setup guide. Step-by-step from clone to first video. |
 | `.env.example` | Template for API keys: `TABSTACK_API_KEY`, `ELEVENLABS_API_KEY`, optional `ELEVENLABS_VOICE_ID`. |
 

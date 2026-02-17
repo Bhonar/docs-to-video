@@ -302,5 +302,5 @@ docs-to-tutorial/
 │   ├── package.json
 │   └── tailwind.config.js
 └── skill/
-    └── SKILL.md             # 7-step workflow Claude follows
+    └── SKILL.md             # 6-step workflow Claude follows
 ```
