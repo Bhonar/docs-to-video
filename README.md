@@ -88,14 +88,12 @@ console.log('Written to', configPath);
 
 ### Step 5: Install the skill
 
-> **Use the global skills directory** — project-level `.claude/skills/` can break depending on where you launch Claude Code from.
+Claude Code expects each skill to be a **directory** containing a `SKILL.md` file:
 
 ```bash
-mkdir -p ~/.claude/skills
-ln -s "$(pwd)/docs-to-tutorial/skill/SKILL.md" ~/.claude/skills/docs-to-tutorial.md
+mkdir -p ~/.claude/skills/docs-to-tutorial
+ln -s "$(pwd)/docs-to-tutorial/skill/SKILL.md" ~/.claude/skills/docs-to-tutorial/SKILL.md
 ```
-
-> **Note:** The symlink must end in `.md` — Claude Code only recognises `.md` skill files.
 
 ### Step 6: Run it
 
@@ -119,15 +117,20 @@ Then type:
 
 ### "Unknown skill"
 
-1. **Symlink doesn't end in `.md`** — check with `ls -la ~/.claude/skills/`. Fix:
+1. **Wrong skill structure** — Claude Code expects a **directory** with `SKILL.md` inside, not a standalone file. Check with:
    ```bash
-   rm -f ~/.claude/skills/docs-to-tutorial
-   ln -s "$(pwd)/docs-to-tutorial/skill/SKILL.md" ~/.claude/skills/docs-to-tutorial.md
+   ls -la ~/.claude/skills/docs-to-tutorial/
+   ```
+   You should see `SKILL.md` (symlink). If the structure is wrong, fix it:
+   ```bash
+   rm -rf ~/.claude/skills/docs-to-tutorial ~/.claude/skills/docs-to-tutorial.md
+   mkdir -p ~/.claude/skills/docs-to-tutorial
+   ln -s "$(pwd)/docs-to-tutorial/skill/SKILL.md" ~/.claude/skills/docs-to-tutorial/SKILL.md
    ```
 
 2. **Symlink target doesn't resolve** — the symlink must use an absolute path. Re-run the `ln -s` command from Step 5 while in your project root.
 
-3. **Didn't restart Claude Code** — skills are loaded at startup. Adding a skill file mid-session won't work. Quit Claude Code and start it again.
+3. **Didn't restart Claude Code** — skills are loaded at startup. Adding a skill mid-session won't work. Quit Claude Code and start it again.
 
 4. **Wrong directory** — you must run `claude` from your project root, not from inside `docs-to-tutorial/`.
 
