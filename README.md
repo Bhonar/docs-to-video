@@ -59,6 +59,8 @@ ELEVENLABS_API_KEY=YOUR_ELEVENLABS_KEY
 EOF
 ```
 
+> Make sure the file is saved with your actual keys before continuing.
+
 ### Step 4: Register the MCP server
 
 Add the MCP server to your **global** Claude Code config (`~/.claude/config.json`).
