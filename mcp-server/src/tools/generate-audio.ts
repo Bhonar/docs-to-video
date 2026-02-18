@@ -248,6 +248,7 @@ async function generateNarrationElevenLabs(
         voice_settings: {
           stability: 0.6,
           similarity_boost: 0.75,
+          speed: 0.9,
         },
       },
       {
@@ -294,6 +295,7 @@ async function generateNarrationElevenLabs(
         voice_settings: {
           stability: 0.6,
           similarity_boost: 0.75,
+          speed: 0.9,
         },
       },
       {
@@ -335,13 +337,10 @@ function createMusicPrompt(style: string, duration: number): string {
     'hip-hop': 'hip-hop instrumental beat, rhythmic drums, bass-heavy, modern',
     'rap': 'rap instrumental beat, strong drums, urban vibe, no vocals',
     'jazz': 'smooth jazz instrumental, piano and saxophone, sophisticated',
-    'lo-fi': 'lo-fi chill beats, mellow and relaxing, study music vibe',
-    'ambient': 'ambient atmospheric background music, ethereal and calming',
-    'cinematic': 'cinematic orchestral instrumental, dramatic and epic',
     'rock': 'rock instrumental background, electric guitar driven, energetic',
   };
 
-  const basePrompt = stylePrompts[style.toLowerCase()] || stylePrompts['lo-fi'];
+  const basePrompt = stylePrompts[style.toLowerCase()] || stylePrompts['pop'];
 
   return `${basePrompt}, instrumental only, no singing, no vocals, no lyrics, ${duration} seconds`;
 }

@@ -85,7 +85,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           musicStyle: {
             type: 'string',
-            description: 'Music style: pop, hip-hop, rap, jazz, lo-fi, ambient, cinematic, rock',
+            description: 'Music style: pop, hip-hop, rap, jazz, rock',
           },
           narrationScript: {
             type: 'string',
@@ -180,7 +180,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           );
         }
         const result = await generateAudio({
-          musicStyle: musicStyle || 'ambient',
+          musicStyle: musicStyle || 'pop',
           narrationScript,
           duration,
           remotionProjectPath,
