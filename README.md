@@ -1,6 +1,10 @@
 # Docs to Tutorial Video
 
-Turn any documentation URL into a polished tutorial video — using **your own React components** so the video looks like your actual product.
+Turn any documentation URL into a **30-60 second tutorial video** — using **your own React components** so the video looks like your actual product.
+
+- One step per scene, short punchy narration
+- Audio-visual sync powered by real ElevenLabs timestamps (not estimated)
+- Content stays centered in a safe zone — no edge overflow
 
 ## Prerequisites
 
@@ -147,3 +151,16 @@ Then type:
 - Check `ELEVENLABS_API_KEY` is set in `docs-to-tutorial/mcp-server/.env`
 - TTS (narration) works on the free tier
 - Music requires a paid ElevenLabs plan — video renders with narration only if music fails
+
+---
+
+## How It Works
+
+The `/docs-to-tutorial` skill tells Claude to follow a 6-step workflow:
+
+1. **Scan your codebase** — finds your components (Button, Card, Badge, etc.), design tokens, and import paths
+2. **Scaffold Remotion** — sets up a `remotion/` directory in your project if needed
+3. **Extract documentation** — fetches the URL content, downloads logos, extracts branding colors
+4. **Write narration & generate audio** — writes a short script (1-2 sentences per step), generates TTS audio with **real timestamps** from ElevenLabs for precise audio-visual sync
+5. **Build the video composition** — writes `Generated.tsx` using your own components, with each step as its own scene inside a centered `SafeZone` layout
+6. **Validate & render** — checks 27 quality rules (no crowded scenes, no numbered lists in a single scene, timecode sync, etc.) then renders to MP4
