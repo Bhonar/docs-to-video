@@ -176,4 +176,4 @@ The `/docs-to-tutorial` skill tells Claude to follow a 6-step workflow:
 3. **Extract documentation** — fetches the URL content, downloads logos, extracts branding colors
 4. **Write narration & generate audio** — writes a short script (1-2 sentences per step), generates TTS audio with **real timestamps** from ElevenLabs for precise audio-visual sync
 5. **Build the video composition** — writes `Generated.tsx` using your own components, with each step as its own scene inside a centered `SafeZone` layout
-6. **Validate & render** — checks 27 quality rules (no crowded scenes, no numbered lists in a single scene, timecode sync, etc.) then renders to MP4
+6. **Validate & render** — checks 29 quality rules (no crowded scenes, no numbered lists in a single scene, timecode sync, etc.) then renders to MP4

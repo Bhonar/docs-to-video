@@ -11,6 +11,60 @@ Generate tutorial and how-to videos from documentation URLs. The video uses the 
 
 ---
 
+## Step 0: Setup Validation (run this FIRST)
+
+Before starting the workflow, check if the MCP tools are available. Try calling any tool (e.g., `extract_docs_content`). If it works, skip to Step 1.
+
+**If tools are NOT available** (you get "unknown tool" or similar error), the MCP server needs setup. Run these commands from the user's project root:
+
+1. **Build the MCP server:**
+   ```bash
+   cd docs-to-tutorial/mcp-server && npm install && npm run build && cd ../..
+   ```
+
+2. **Create `.env` if missing:**
+   ```bash
+   if [ ! -f docs-to-tutorial/mcp-server/.env ]; then
+     cp docs-to-tutorial/mcp-server/.env.example docs-to-tutorial/mcp-server/.env
+     echo "Created .env from template — user must add API keys"
+   fi
+   ```
+   If `.env` was just created, tell the user:
+   > You need to add your API keys to `docs-to-tutorial/mcp-server/.env`:
+   > - **TABSTACK_API_KEY** — get it at https://tabstack.ai/dashboard
+   > - **ELEVENLABS_API_KEY** — get it at https://elevenlabs.io
+
+3. **Register the MCP server:**
+   ```bash
+   node -e "
+   const path = require('path');
+   const fs = require('fs');
+   const serverPath = path.resolve('docs-to-tutorial/mcp-server/dist/server.js');
+   const serverCwd = path.resolve('docs-to-tutorial/mcp-server');
+   if (!fs.existsSync(serverPath)) { console.error('ERROR: Build the MCP server first'); process.exit(1); }
+   const configPath = path.join(require('os').homedir(), '.claude', 'config.json');
+   const config = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, 'utf8')) : {};
+   config.mcpServers = config.mcpServers || {};
+   config.mcpServers['docs-to-tutorial'] = { command: 'node', args: [serverPath], cwd: serverCwd };
+   fs.mkdirSync(path.dirname(configPath), { recursive: true });
+   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+   console.log('Registered at', configPath);
+   "
+   ```
+
+4. **Install the skill** (if not already):
+   ```bash
+   mkdir -p ~/.claude/skills/docs-to-tutorial
+   ln -sf "$(pwd)/docs-to-tutorial/skill/SKILL.md" ~/.claude/skills/docs-to-tutorial/SKILL.md
+   ```
+
+5. **Tell the user to restart Claude Code:**
+   > Setup complete! Please restart Claude Code (quit and re-open) for the MCP tools to load, then run `/docs-to-tutorial <url>` again.
+
+**STOP here if you had to run setup.** The MCP tools only load at Claude Code startup, so the user must restart before proceeding to Step 1.
+
+---
+
 ## 6-Step Workflow
 
 ### Step 1: Scan User's Codebase
