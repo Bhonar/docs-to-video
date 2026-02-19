@@ -198,7 +198,7 @@ Write a **short, punchy** narration script. Each paragraph becomes one scene —
 - `duration` — estimated total video length in seconds
 - `remotionProjectPath` — absolute path to the `remotion/` directory
 
-**Note:** Music generation requires a paid ElevenLabs plan. If music fails, the video will have narration only — this is fine. TTS narration works on the free tier.
+**IMPORTANT: Always attempt music generation.** Do NOT skip it. Call the tool with `musicStyle` and let the API respond. Only fall back to narration-only if the API returns an actual error. Never preemptively skip music.
 
 **Save returned values:**
 - `audio.music.staticPath`
