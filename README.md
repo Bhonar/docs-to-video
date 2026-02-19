@@ -72,23 +72,34 @@ Add the MCP server to your **global** Claude Code config (`~/.claude/config.json
 If the file doesn't exist yet, create it. If it already has other servers, add `docs-to-tutorial` to the existing `mcpServers` object.
 
 ```bash
-# This command writes the correct config with absolute paths
+# Run this from your project root (where docs-to-tutorial/ lives)
 node -e "
 const path = require('path');
 const fs = require('fs');
+const serverPath = path.resolve('docs-to-tutorial/mcp-server/dist/server.js');
+const serverCwd = path.resolve('docs-to-tutorial/mcp-server');
+if (!fs.existsSync(serverPath)) {
+  console.error('ERROR: Server not found at ' + serverPath);
+  console.error('Make sure you ran: cd docs-to-tutorial/mcp-server && npm run build');
+  console.error('And that you are running this from your project root');
+  process.exit(1);
+}
 const configPath = path.join(require('os').homedir(), '.claude', 'config.json');
 const config = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, 'utf8')) : {};
 config.mcpServers = config.mcpServers || {};
 config.mcpServers['docs-to-tutorial'] = {
   command: 'node',
-  args: [path.resolve('docs-to-tutorial/mcp-server/dist/server.js')],
-  cwd: path.resolve('docs-to-tutorial/mcp-server')
+  args: [serverPath],
+  cwd: serverCwd
 };
 fs.mkdirSync(path.dirname(configPath), { recursive: true });
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 console.log('Written to', configPath);
+console.log('Server:', serverPath);
 "
 ```
+
+> If you see `ERROR: Server not found`, make sure you're in the right directory and that you ran `npm run build` in Step 2.
 
 ### Step 5: Install the skill
 
@@ -140,11 +151,13 @@ Then type:
 
 4. **Wrong directory** — you must run `claude` from your project root, not from inside `docs-to-tutorial/`.
 
-### MCP server not connecting
+### MCP server not connecting / tools not available
 
-1. Make sure you built it: `cd docs-to-tutorial/mcp-server && npm run build`
-2. Check `~/.claude/config.json` has `docs-to-tutorial` in `mcpServers` with correct absolute paths. Re-run the Step 4 command from your project root.
-3. Restart Claude Code after changing settings
+1. **Stale `.mcp.json`** — If a previous test created a `.mcp.json` in your project with relative paths, delete it. The global `~/.claude/config.json` (set by Step 4) uses absolute paths and is more reliable.
+2. **Wrong working directory** — Start Claude Code from your **project root** (where `docs-to-tutorial/` lives), not a parent directory.
+3. **Config points to wrong path** — Re-run the Step 4 command from your project root to update with correct absolute paths. Check `~/.claude/config.json` to verify.
+4. **Server not built** — Run `cd docs-to-tutorial/mcp-server && npm run build`
+5. **Didn't restart Claude Code** — MCP servers load at startup. Quit and restart after config changes.
 
 ### Audio not generating
 
