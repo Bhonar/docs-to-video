@@ -59,6 +59,18 @@ Then restart Claude Code and run:
 
 ---
 
+## Install via Skills.sh
+
+If you use [skills.sh](https://skills.sh), you can install the skill with:
+
+```bash
+npx skills add Bhonar/docs-to-video
+```
+
+The first time you run `/docs-to-video`, Claude will automatically run `npx docs-to-video setup` to install the MCP server and dependencies.
+
+---
+
 ## Manual Setup (git clone)
 
 If you prefer to clone the repo directly:
