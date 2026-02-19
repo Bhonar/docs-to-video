@@ -23,20 +23,39 @@ Turn any documentation URL into a **30-60 second tutorial video** — using **yo
 
 ## Quick Setup (npm)
 
+Run this **from your project root** (where your `package.json` and `src/` live):
+
 ```bash
+cd /path/to/my-react-app
 npx docs-to-video setup
 ```
 
 This will:
+- Copy `docs-to-video/` into your project (MCP server, remotion template, skill)
+- Install MCP server dependencies
 - Prompt for your API keys
-- Register the MCP server in Claude Code
+- Register the MCP server in Claude Code (pointing to your project)
 - Install the skill
+
+Your project will look like:
+
+```
+my-react-app/
+├── src/                  ← your code
+├── package.json
+└── docs-to-video/        ← created by setup
+    ├── mcp-server/       (MCP server + dependencies)
+    ├── remotion-template/ (video scaffolding)
+    └── skill/            (SKILL.md)
+```
 
 Then restart Claude Code and run:
 
 ```
 /docs-to-video https://docs.stripe.com/payments/quickstart
 ```
+
+> **Important:** Always start Claude Code from your project root so it can find your components and the `docs-to-video/` directory.
 
 ---
 
@@ -96,7 +115,7 @@ node -e "
 const path = require('path');
 const fs = require('fs');
 const serverPath = path.resolve('docs-to-video/mcp-server/dist/server.js');
-const serverCwd = path.resolve('docs-to-video/mcp-server');
+const projectRoot = process.cwd();
 if (!fs.existsSync(serverPath)) {
   console.error('ERROR: Server not found at ' + serverPath);
   console.error('Make sure you ran: cd docs-to-video/mcp-server && npm run build');
@@ -109,12 +128,13 @@ config.mcpServers = config.mcpServers || {};
 config.mcpServers['docs-to-video'] = {
   command: 'node',
   args: [serverPath],
-  cwd: serverCwd
+  cwd: projectRoot
 };
 fs.mkdirSync(path.dirname(configPath), { recursive: true });
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 console.log('Written to', configPath);
 console.log('Server:', serverPath);
+console.log('Working directory:', projectRoot);
 "
 ```
 
@@ -189,8 +209,17 @@ Then type:
 If you installed via npm:
 
 ```bash
+cd /path/to/my-react-app      # run from your project root
 npx docs-to-video uninstall
-npm uninstall -g docs-to-video
+rm -rf docs-to-video/          # remove the copied files
+```
+
+If you installed via git clone:
+
+```bash
+rm -rf docs-to-video/
+rm -rf ~/.claude/skills/docs-to-video
+# Then remove the "docs-to-video" entry from ~/.claude/config.json
 ```
 
 ---

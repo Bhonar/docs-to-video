@@ -5,6 +5,7 @@ import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url';
 import readline from 'readline';
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,13 +35,33 @@ function check(label, ok) {
   return ok;
 }
 
+/**
+ * Recursively copy a directory's contents into a destination.
+ */
+function copyDirRecursive(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDirRecursive(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
 // ─── Paths ────────────────────────────────────────────────────────────
 const configDir = path.join(os.homedir(), '.docs-to-video');
 const envPath = path.join(configDir, '.env');
 const claudeConfigPath = path.join(os.homedir(), '.claude', 'config.json');
 const skillDir = path.join(os.homedir(), '.claude', 'skills', 'docs-to-video');
+
+// Source paths (inside the npm package)
 const skillSource = path.join(packageRoot, 'skill', 'SKILL.md');
-const serverJs = path.join(packageRoot, 'mcp-server', 'dist', 'server.js');
+const mcpServerSource = path.join(packageRoot, 'mcp-server');
+const templateSource = path.join(packageRoot, 'remotion-template');
 
 // ═══════════════════════════════════════════════════════════════════════
 //  SETUP
@@ -51,6 +72,8 @@ async function setup() {
   console.log(dim('  Turn documentation URLs into tutorial videos'));
   console.log('');
 
+  const projectRoot = process.cwd();
+
   // 1. Check Node version
   const nodeVersion = parseInt(process.versions.node.split('.')[0]);
   if (!check('Node.js v18+', nodeVersion >= 18)) {
@@ -58,23 +81,106 @@ async function setup() {
     process.exit(1);
   }
 
-  // 2. Check server exists
-  if (!check('MCP server found', fs.existsSync(serverJs))) {
-    console.log(red(`\n  Server not found at: ${serverJs}`));
-    console.log(red('  The package may be corrupted. Try reinstalling:'));
-    console.log(`  ${cyan('npm install -g docs-to-video')}`);
+  // 2. Check we're in a project directory
+  const hasPackageJson = fs.existsSync(path.join(projectRoot, 'package.json'));
+  const hasSrc = fs.existsSync(path.join(projectRoot, 'src'));
+  const hasApp = fs.existsSync(path.join(projectRoot, 'app'));
+
+  if (!hasPackageJson && !hasSrc && !hasApp) {
+    console.log('');
+    console.log(yellow('  Warning: No package.json, src/, or app/ found here.'));
+    console.log(dim(`  Current directory: ${projectRoot}`));
+    console.log('');
+    console.log(`  ${bold('Run this from your project root')} (where your React/Next.js code lives).`);
+    console.log(`  Example: ${cyan('cd ~/my-app && npx docs-to-video setup')}`);
+    console.log('');
+    const proceed = await prompt(`  ${cyan('?')} Continue anyway? ${dim('(y/N)')} `);
+    if (proceed.toLowerCase() !== 'y') {
+      console.log(dim('\n  Setup cancelled.\n'));
+      process.exit(0);
+    }
+  } else {
+    check(`Project detected at ${dim(projectRoot)}`, true);
+  }
+
+  // 3. Verify package source files exist
+  const serverSourceJs = path.join(mcpServerSource, 'dist', 'server.js');
+  if (!check('MCP server found in package', fs.existsSync(serverSourceJs))) {
+    console.log(red(`\n  Server not found at: ${serverSourceJs}`));
+    console.log(red('  The package may be corrupted. Try reinstalling.'));
     process.exit(1);
   }
 
-  // 3. Check skill file exists
-  if (!check('Skill file found', fs.existsSync(skillSource))) {
+  if (!check('Skill file found in package', fs.existsSync(skillSource))) {
     console.log(red(`\n  SKILL.md not found at: ${skillSource}`));
     process.exit(1);
   }
 
+  // 4. Copy docs-to-video/ into the user's project
+  console.log('');
+  console.log(bold('  Installing into project...'));
   console.log('');
 
-  // 4. API keys
+  const localDir = path.join(projectRoot, 'docs-to-video');
+  const localMcpServer = path.join(localDir, 'mcp-server');
+  const localTemplate = path.join(localDir, 'remotion-template');
+  const localSkill = path.join(localDir, 'skill');
+  const localServerJs = path.join(localMcpServer, 'dist', 'server.js');
+
+  // Copy MCP server (dist + package.json + .env.example)
+  const mcpDistSource = path.join(mcpServerSource, 'dist');
+  const mcpDistDest = path.join(localMcpServer, 'dist');
+
+  if (fs.existsSync(localServerJs)) {
+    check(`docs-to-video/mcp-server/ already exists ${dim('(updating)')}`, true);
+  }
+
+  // Always copy to ensure latest version
+  copyDirRecursive(mcpDistSource, mcpDistDest);
+  // Copy package.json for npm install
+  fs.copyFileSync(
+    path.join(mcpServerSource, 'package.json'),
+    path.join(localMcpServer, 'package.json')
+  );
+  // Copy .env.example
+  const envExampleSrc = path.join(mcpServerSource, '.env.example');
+  if (fs.existsSync(envExampleSrc)) {
+    fs.copyFileSync(envExampleSrc, path.join(localMcpServer, '.env.example'));
+  }
+  check('Copied MCP server to docs-to-video/mcp-server/', true);
+
+  // Copy remotion-template
+  if (fs.existsSync(templateSource)) {
+    if (fs.existsSync(localTemplate)) {
+      check(`docs-to-video/remotion-template/ already exists ${dim('(skipping)')}`, true);
+    } else {
+      copyDirRecursive(templateSource, localTemplate);
+      check('Copied remotion-template/ to docs-to-video/', true);
+    }
+  }
+
+  // Copy skill
+  fs.mkdirSync(localSkill, { recursive: true });
+  fs.copyFileSync(skillSource, path.join(localSkill, 'SKILL.md'));
+  check('Copied skill/ to docs-to-video/', true);
+
+  // 5. Install MCP server dependencies
+  console.log('');
+  console.log(dim('  Installing MCP server dependencies (this may take a minute)...'));
+  try {
+    execSync('npm install --production', {
+      cwd: localMcpServer,
+      stdio: 'pipe',
+    });
+    check('MCP server dependencies installed', true);
+  } catch (err) {
+    console.log(yellow('  Warning: npm install failed. You can run it manually:'));
+    console.log(cyan(`  cd ${localMcpServer} && npm install`));
+  }
+
+  console.log('');
+
+  // 6. API keys
   console.log(bold('  API Keys'));
   console.log(dim('  Press Enter to skip optional keys\n'));
 
@@ -121,7 +227,7 @@ async function setup() {
     elevenLabsVoiceId = await prompt(`  ${cyan('?')} ElevenLabs Voice ID ${dim('(optional, press Enter for default)')}: `);
   }
 
-  // 5. Write .env
+  // 7. Write .env
   console.log('');
   fs.mkdirSync(configDir, { recursive: true });
   let envContent = '';
@@ -135,7 +241,7 @@ async function setup() {
   fs.writeFileSync(envPath, envContent);
   check(`API keys saved to ${dim('~/.docs-to-video/.env')}`, true);
 
-  // 6. Register MCP server
+  // 8. Register MCP server pointing to the LOCAL copy inside the project
   const claudeDir = path.join(os.homedir(), '.claude');
   fs.mkdirSync(claudeDir, { recursive: true });
 
@@ -151,24 +257,22 @@ async function setup() {
   config.mcpServers = config.mcpServers || {};
   config.mcpServers['docs-to-video'] = {
     command: 'node',
-    args: [serverJs],
-    cwd: path.dirname(serverJs),
+    args: [localServerJs],
+    cwd: projectRoot,
   };
   fs.writeFileSync(claudeConfigPath, JSON.stringify(config, null, 2));
-  check(`MCP server registered in ${dim('~/.claude/config.json')}`, true);
+  check(`MCP server registered ${dim('(cwd: ' + projectRoot + ')')}`, true);
 
-  // 7. Install skill symlink
+  // 9. Install skill (copy, not symlink — survives npx cache clears)
   fs.mkdirSync(skillDir, { recursive: true });
-  const skillLink = path.join(skillDir, 'SKILL.md');
-
-  // Remove old symlink/file if exists
-  if (fs.existsSync(skillLink)) {
-    fs.unlinkSync(skillLink);
+  const skillDest = path.join(skillDir, 'SKILL.md');
+  if (fs.existsSync(skillDest)) {
+    fs.unlinkSync(skillDest);
   }
-  fs.symlinkSync(skillSource, skillLink);
+  fs.copyFileSync(skillSource, skillDest);
   check(`Skill installed at ${dim('~/.claude/skills/docs-to-video/')}`, true);
 
-  // 8. Clean up old docs-to-tutorial registrations
+  // 10. Clean up old docs-to-tutorial registrations
   if (config.mcpServers['docs-to-tutorial']) {
     delete config.mcpServers['docs-to-tutorial'];
     fs.writeFileSync(claudeConfigPath, JSON.stringify(config, null, 2));
@@ -184,9 +288,16 @@ async function setup() {
   console.log('');
   console.log(green(bold('  Setup complete!')));
   console.log('');
+  console.log(`  ${bold('Installed to:')} ${cyan(localDir)}`);
+  console.log(dim('  ├── mcp-server/    (MCP server + dependencies)'));
+  console.log(dim('  ├── remotion-template/  (video scaffolding)'));
+  console.log(dim('  └── skill/         (SKILL.md)'));
+  console.log('');
   console.log(`  ${bold('Next steps:')}`);
   console.log(`  1. ${bold('Restart Claude Code')} (quit and reopen)`);
-  console.log(`  2. Run: ${cyan('/docs-to-video <documentation-url>')}`);
+  console.log(`  2. Start Claude Code from ${bold('this directory')}:`);
+  console.log(`     ${cyan('cd ' + projectRoot + ' && claude')}`);
+  console.log(`  3. Run: ${cyan('/docs-to-video <documentation-url>')}`);
   console.log('');
   console.log(dim('  Example:'));
   console.log(dim('  /docs-to-video https://docs.stripe.com/payments/quickstart'));
@@ -223,9 +334,25 @@ async function uninstall() {
   // Remove skill
   if (fs.existsSync(skillDir)) {
     fs.rmSync(skillDir, { recursive: true });
-    check('Removed skill symlink', true);
+    check('Removed skill', true);
   } else {
-    check('Skill symlink (already removed)', true);
+    check('Skill (already removed)', true);
+  }
+
+  // Note about docs-to-video/ in project
+  const localDir = path.join(process.cwd(), 'docs-to-video');
+  if (fs.existsSync(localDir)) {
+    console.log(dim(`\n  Note: docs-to-video/ still exists in your project.`));
+    console.log(dim(`  Remove it manually if you no longer need it:`));
+    console.log(dim(`  rm -rf ${localDir}`));
+  }
+
+  // Note about remotion/ directory
+  const remotionDir = path.join(process.cwd(), 'remotion');
+  if (fs.existsSync(remotionDir)) {
+    console.log(dim(`\n  Note: remotion/ directory still exists (contains your generated videos).`));
+    console.log(dim(`  Remove it manually if you no longer need it:`));
+    console.log(dim(`  rm -rf ${remotionDir}`));
   }
 
   // Keep .env (user's API keys)
@@ -262,6 +389,8 @@ switch (command) {
     console.log(`    ${cyan('npx docs-to-video setup')}       Set up MCP server, skill, and API keys`);
     console.log(`    ${cyan('npx docs-to-video uninstall')}   Remove MCP registration and skill`);
     console.log(`    ${cyan('npx docs-to-video --help')}      Show this help`);
+    console.log('');
+    console.log(dim('  Run setup from your project root (where package.json lives).'));
     console.log('');
     break;
   default:
