@@ -421,9 +421,14 @@ const ClickIndicator: React.FC<{
   const rel = frame - startFrame;
   if (rel < 0 || rel > 36) return null;
 
-  // Phase 1: cursor slides in from top-left offset
-  const cursorX = interpolate(rel, [0, 12], [x - 50, x], { extrapolateRight: 'clamp' });
-  const cursorY = interpolate(rel, [0, 12], [y - 40, y], { extrapolateRight: 'clamp' });
+  // Cursor SVG tip offset — the pointer tip in the SVG path is at (5,3) in a 24×24 viewBox,
+  // rendered at 28×28px. Subtract this offset so the tip lands exactly at (x, y).
+  const tipOffsetX = 6;
+  const tipOffsetY = 4;
+
+  // Phase 1: cursor slides in from top-left offset, tip lands exactly at (x, y)
+  const cursorX = interpolate(rel, [0, 12], [x - 50 - tipOffsetX, x - tipOffsetX], { extrapolateRight: 'clamp' });
+  const cursorY = interpolate(rel, [0, 12], [y - 40 - tipOffsetY, y - tipOffsetY], { extrapolateRight: 'clamp' });
   const cursorOpacity = interpolate(rel, [0, 6, 28, 36], [0, 1, 1, 0], {
     extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
   });
@@ -436,13 +441,13 @@ const ClickIndicator: React.FC<{
 
   return (
     <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
-      {/* Cursor pointer SVG */}
+      {/* Cursor pointer SVG — positioned so the tip of the arrow lands at (x, y) */}
       <svg width="28" height="28" viewBox="0 0 24 24"
         style={{ position: 'absolute', left: cursorX, top: cursorY, opacity: cursorOpacity,
           filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>
         <path d="M5 3l14 8-6.5 1.5L10 19z" fill="white" stroke="black" strokeWidth="1.5" />
       </svg>
-      {/* Click ripple ring */}
+      {/* Click ripple ring — centered exactly at the target point */}
       <div style={{ position: 'absolute', left: x - 20, top: y - 20, width: 40, height: 40,
         borderRadius: '50%', border: '3px solid rgba(255,255,255,0.8)',
         transform: `scale(${rippleScale})`, opacity: rippleOpacity }} />
@@ -543,10 +548,63 @@ const SafeZone: React.FC<{
 
 **Click indicators for interactive steps.** When narration mentions clicking, selecting, tapping, or pressing a UI element:
 1. Add `<ClickIndicator>` inside the scene, OUTSIDE `<SafeZone>` (it uses absolute positioning in the full 1920×1080 frame)
-2. Set `x` and `y` to the pixel center of the target button (SafeZone content area spans roughly x: 360–1560, y: 60–1020)
+2. **Calculate `x` and `y` precisely** — see coordinate math below
 3. Set `startFrame` to `getRevealFrame()` of the sentence mentioning the click
 4. Optionally set `label` to the button text (e.g., `label="Create API Key"`)
 5. Auto-hides after 36 frames (~1.2s at 30fps)
+
+**⚠️ ACCURATE CLICK POSITIONING — coordinate calculation (MUST follow this):**
+
+The video frame is 1920×1080. SafeZone creates a centered column:
+- SafeZone left edge: `(1920 - 1200) / 2 = 360px` from left
+- SafeZone right edge: `360 + 1200 = 1560px` from left
+- SafeZone top padding: `60px`
+- SafeZone bottom: `1080 - 60 = 1020px`
+- Content padding inside SafeZone: `80px` left/right → content starts at `360 + 80 = 440px`, ends at `1560 - 80 = 1480px`
+- Usable content width: `1480 - 440 = 1040px`
+
+**To find the exact center of a button, work from the inside out:**
+
+1. **Identify the button's container** — is it inside a Card with padding? A flex row? Centered or left-aligned?
+2. **Calculate the button's horizontal center:**
+   - If the button is **centered** in SafeZone (default flex column + alignItems center): `x = 960` (frame center)
+   - If the button is **left-aligned**: `x = 440 + buttonPaddingLeft + (buttonWidth / 2)`
+   - If the button is **right-aligned**: `x = 1480 - buttonPaddingRight - (buttonWidth / 2)`
+   - If inside a **flex row with gap**: calculate each item's position based on flex layout
+   - If the button is inside a Card with its own padding (e.g., `p-8` = 32px): add that padding to the offset
+3. **Calculate the button's vertical center:**
+   - Count the elements above the button in the scene layout (titles, text, spacing, margins)
+   - SafeZone uses `justifyContent: 'center'`, so content is vertically centered in the frame
+   - Estimate total content height, then: `contentTop = (1080 - totalContentHeight) / 2`
+   - Add heights of elements above the button + half the button's own height
+4. **Common button sizes to assume:** standard button ~40px tall, large button ~48px, small ~32px. Standard button width ~120-200px depending on text length.
+
+**Quick reference for common layouts:**
+
+| Layout | Button position | x | y (approx) |
+|--------|----------------|---|-------------|
+| Centered card, button at bottom | Center of card | 960 | 540 + (cardHeight/2) - 20 |
+| Sidebar nav, menu item | Left column | 440 + sidebarWidth/2 | itemTop + 20 |
+| Top-right action button | Right side | 1400-1480 | 120-160 |
+| Form with submit at bottom | Center | 960 | formBottom - 30 |
+| Mock browser, button inside content | Center of mock content area | 960 | mockContentY + buttonOffsetY |
+
+**Example — scene with a Card containing a title + text + centered button:**
+```
+Card padding: 32px (p-8). Card is centered in SafeZone.
+Title: ~40px tall, marginBottom 16px
+Description text: ~24px tall, marginBottom 24px
+Button: ~44px tall
+
+Total content height ≈ 32 + 40 + 16 + 24 + 24 + 44 + 32 = 212px
+Card top = (1080 - 212) / 2 ≈ 434
+Button center Y = 434 + 32 + 40 + 16 + 24 + 24 + 22 = 592
+Button center X = 960 (centered)
+
+→ <ClickIndicator x={960} y={592} ... />
+```
+
+**IMPORTANT: When writing scene JSX, give the target button a known size.** If the button's size is explicit (e.g., `style={{ width: 200, height: 44 }}`), coordinate calculation is much more reliable. Always set explicit `width` and `height` on clickable elements when using ClickIndicator.
 
 **When to use ClickIndicator:** narration contains "click", "select", "tap", "press", "hit", "choose" AND the scene shows a mock UI with a visible button or link.
 **When NOT to use:** terminal/code scenes (no buttons), abstract concepts, intro/summary scenes.
@@ -911,7 +969,7 @@ export const Generated: React.FC<TutorialVideoProps> = ({ content, branding, aud
 - **Always pass `sceneTimecodes={scenes[i]}` to scene components** — use `getRevealFrame()` for visual timing
 - Add or remove scenes to match the number of narration paragraphs (one paragraph = one scene)
 - Import different user components as needed
-- **Click indicators:** When a scene narration says "click X", add `<ClickIndicator x={buttonCenterX} y={buttonCenterY} startFrame={getRevealFrame(sceneTimecodes[0], sceneStart, fps) + 15} label="X" />` as a sibling to `<SafeZone>`, not inside it
+- **Click indicators:** When a scene narration says "click X", add `<ClickIndicator x={buttonCenterX} y={buttonCenterY} startFrame={getRevealFrame(sceneTimecodes[0], sceneStart, fps) + 15} label="X" />` as a sibling to `<SafeZone>`, not inside it. **Calculate `x` and `y` precisely** using the coordinate math in the "ACCURATE CLICK POSITIONING" section — do NOT guess approximate values. Give the target button explicit `width` and `height` styles so you can calculate its center accurately.
 
 **Remotion rules:**
 - Audio: `import { Audio } from '@remotion/media'` — NOT from `remotion`
