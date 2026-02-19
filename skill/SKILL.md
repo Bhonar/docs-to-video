@@ -41,36 +41,51 @@ Before anything else, understand the user's project:
 
 **IMPORTANT: This step MUST happen before Steps 3-4.** The extraction and audio tools save files to `remotion/public/`. If `remotion/` doesn't exist yet, those files would be lost.
 
-Check if `remotion/` directory exists in the user's project root. If not:
+Check if `remotion/` directory exists in the user's project root. If not, create it and copy the template contents:
 
-1. Copy the template files from the MCP server's `remotion-template/` directory:
-   ```
-   remotion/
-   ├── src/
-   │   ├── Root.tsx
-   │   ├── index.ts
-   │   ├── style.css          (Tailwind entry — required)
-   │   └── compositions/
-   │       └── Generated.tsx
-   ├── public/
-   │   ├── audio/    (generated audio goes here)
-   │   └── images/   (downloaded logos go here)
-   ├── package.json
-   ├── tsconfig.json
-   └── tailwind.config.js
-   ```
+```bash
+mkdir -p remotion
+cp -r remotion-template/* remotion/
+```
 
-2. **Update Tailwind content paths** if the user's components aren't in `../src/`:
+> ⚠️ **DO NOT** use `cp -r remotion-template remotion` — if `remotion/` already exists, this creates `remotion/remotion-template/` (nested and broken). Always use `cp -r remotion-template/* remotion/` to copy the **contents**.
+
+**After copying, verify the structure is flat** — `remotion/package.json` must exist at the top level:
+
+```
+remotion/
+├── src/
+│   ├── Root.tsx
+│   ├── index.ts
+│   ├── style.css          (Tailwind entry — required)
+│   └── compositions/
+│       └── Generated.tsx
+├── public/
+│   ├── audio/    (generated audio goes here)
+│   └── images/   (downloaded logos go here)
+├── package.json
+├── tsconfig.json
+└── tailwind.config.js
+```
+
+If you see `remotion/remotion-template/` (nested), fix it immediately:
+```bash
+mv remotion/remotion-template/* remotion/ && rm -rf remotion/remotion-template
+```
+
+Next:
+
+1. **Update Tailwind content paths** if the user's components aren't in `../src/`:
    - Default: `'../src/**/*.{ts,tsx}'`
    - If user has `app/` structure: add `'../app/**/*.{ts,tsx}'`
    - If monorepo with `packages/`: add `'../packages/ui/**/*.{ts,tsx}'`
    - Check where the user's components live and ensure `remotion/tailwind.config.js` includes them
 
-3. Run `cd remotion && npm install`
+2. Run `cd remotion && npm install`
 
-4. Verify: `remotion/src/index.ts` exists and imports Root and `style.css`
+3. Verify: `remotion/src/index.ts` exists and imports Root and `style.css`
 
-**If remotion/ already exists**, just verify the structure is intact and that `tailwind.config.js` content paths include the user's component directories.
+**If remotion/ already exists**, verify the structure is flat (no nested `remotion-template/` folder) and that `tailwind.config.js` content paths include the user's component directories.
 
 ---
 
