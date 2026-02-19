@@ -339,11 +339,11 @@ async function generateNarrationElevenLabs(
 
 function createMusicPrompt(style: string, duration: number): string {
   const stylePrompts: Record<string, string> = {
-    'pop': 'upbeat pop instrumental background music, catchy melody, energetic',
-    'hip-hop': 'hip-hop instrumental beat, rhythmic drums, bass-heavy, modern',
-    'rap': 'rap instrumental beat, strong drums, urban vibe, no vocals',
-    'jazz': 'smooth jazz instrumental, piano and saxophone, sophisticated',
-    'rock': 'rock instrumental background, electric guitar driven, energetic',
+    'pop': 'chill pop instrumental, relaxed piano and light synth, warm and positive but calm',
+    'hip-hop': 'chill hip-hop lo-fi beat, mellow drums, relaxed vibe, smooth',
+    'rap': 'chill rap instrumental, laid-back beat, smooth bass, relaxed',
+    'jazz': 'smooth jazz instrumental, soft piano and saxophone, mellow and warm',
+    'rock': 'soft rock instrumental, mellow guitar, relaxed groove, warm',
   };
 
   const basePrompt = stylePrompts[style.toLowerCase()] || stylePrompts['pop'];

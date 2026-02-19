@@ -1,0 +1,48 @@
+{
+  "name": "docs-to-video",
+  "version": "1.0.0",
+  "description": "Turn any documentation URL into a polished tutorial video using AI, Remotion, and your own React components",
+  "type": "module",
+  "bin": {
+    "docs-to-video": "./bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    "mcp-server/dist/server.js",
+    "mcp-server/dist/server.d.ts",
+    "mcp-server/dist/tools/",
+    "mcp-server/dist/utils/",
+    "!mcp-server/dist/**/__tests__/",
+    "!mcp-server/dist/**/*.map",
+    "mcp-server/package.json",
+    "mcp-server/.env.example",
+    "remotion-template/src/",
+    "remotion-template/public/images/",
+    "remotion-template/public/audio/.gitkeep",
+    "remotion-template/package.json",
+    "remotion-template/tsconfig.json",
+    "remotion-template/tailwind.config.js",
+    "skill/"
+  ],
+  "keywords": [
+    "mcp",
+    "remotion",
+    "tutorial",
+    "video",
+    "claude",
+    "docs",
+    "elevenlabs",
+    "ai",
+    "documentation",
+    "react"
+  ],
+  "author": "Bahar Honar",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bhonar/docs-to-video.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

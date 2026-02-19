@@ -18,7 +18,7 @@ const hasTabstack = !!process.env.TABSTACK_API_KEY;
 const hasElevenLabs = !!process.env.ELEVENLABS_API_KEY;
 
 // Use a temp dir for remotion files during tests
-const testRemotionPath = path.join(os.tmpdir(), 'docs-to-tutorial-test-remotion');
+const testRemotionPath = path.join(os.tmpdir(), 'docs-to-video-test-remotion');
 
 describe.skipIf(!hasTabstack)('extract_docs_content (integration)', () => {
   it('extracts markdown and metadata from a real docs page', async () => {

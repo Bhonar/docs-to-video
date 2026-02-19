@@ -10,6 +10,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import dotenv from 'dotenv';
 import path from 'path';
+import os from 'os';
 import { fileURLToPath } from 'url';
 
 // Import tools
@@ -22,13 +23,14 @@ import { renderVideo } from './tools/render-video.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load .env relative to this file (dist/server.js → ../.env), not cwd
+// Load .env — try local first (dev/git-clone), then global (npm install)
 dotenv.config({ path: path.join(__dirname, '../.env') });
+dotenv.config({ path: path.join(os.homedir(), '.docs-to-video', '.env') });
 
 // Create MCP server
 const server = new Server(
   {
-    name: 'docs-to-tutorial-mcp',
+    name: 'docs-to-video-mcp',
     version: '1.0.0',
   },
   {

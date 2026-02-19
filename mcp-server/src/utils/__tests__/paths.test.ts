@@ -68,8 +68,8 @@ describe('getOutputDir', () => {
     expect(getOutputDir()).toBe('/custom/output');
   });
 
-  it('falls back to ~/Videos/docs-to-tutorial', () => {
+  it('falls back to ~/Videos/docs-to-video', () => {
     delete process.env.REMOTION_OUTPUT_PATH;
-    expect(getOutputDir()).toBe(path.join(os.homedir(), 'Videos', 'docs-to-tutorial'));
+    expect(getOutputDir()).toBe(path.join(os.homedir(), 'Videos', 'docs-to-video'));
   });
 });

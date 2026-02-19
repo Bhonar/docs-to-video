@@ -1,9 +1,9 @@
 ---
-name: docs-to-tutorial
-description: Create tutorial/how-to videos from documentation URLs using the user's own React components and Remotion
+name: docs-to-video
+description: Turn documentation URLs into tutorial videos using the user's own React components and Remotion
 ---
 
-# Docs to Tutorial Video
+# Docs to Video
 
 Generate tutorial and how-to videos from documentation URLs. The video uses the user's **own React components** (buttons, cards, layouts) so the tutorial looks like their actual product. Produces an MP4 with AI narration, background music, and animated scenes.
 
@@ -19,18 +19,18 @@ Before starting the workflow, check if the MCP tools are available. Try calling 
 
 1. **Build the MCP server:**
    ```bash
-   cd docs-to-tutorial/mcp-server && npm install && npm run build && cd ../..
+   cd docs-to-video/mcp-server && npm install && npm run build && cd ../..
    ```
 
 2. **Create `.env` if missing:**
    ```bash
-   if [ ! -f docs-to-tutorial/mcp-server/.env ]; then
-     cp docs-to-tutorial/mcp-server/.env.example docs-to-tutorial/mcp-server/.env
+   if [ ! -f docs-to-video/mcp-server/.env ]; then
+     cp docs-to-video/mcp-server/.env.example docs-to-video/mcp-server/.env
      echo "Created .env from template — user must add API keys"
    fi
    ```
    If `.env` was just created, tell the user:
-   > You need to add your API keys to `docs-to-tutorial/mcp-server/.env`:
+   > You need to add your API keys to `docs-to-video/mcp-server/.env`:
    > - **TABSTACK_API_KEY** — get it at https://tabstack.ai/dashboard
    > - **ELEVENLABS_API_KEY** — get it at https://elevenlabs.io
 
@@ -39,13 +39,13 @@ Before starting the workflow, check if the MCP tools are available. Try calling 
    node -e "
    const path = require('path');
    const fs = require('fs');
-   const serverPath = path.resolve('docs-to-tutorial/mcp-server/dist/server.js');
-   const serverCwd = path.resolve('docs-to-tutorial/mcp-server');
+   const serverPath = path.resolve('docs-to-video/mcp-server/dist/server.js');
+   const serverCwd = path.resolve('docs-to-video/mcp-server');
    if (!fs.existsSync(serverPath)) { console.error('ERROR: Build the MCP server first'); process.exit(1); }
    const configPath = path.join(require('os').homedir(), '.claude', 'config.json');
    const config = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, 'utf8')) : {};
    config.mcpServers = config.mcpServers || {};
-   config.mcpServers['docs-to-tutorial'] = { command: 'node', args: [serverPath], cwd: serverCwd };
+   config.mcpServers['docs-to-video'] = { command: 'node', args: [serverPath], cwd: serverCwd };
    fs.mkdirSync(path.dirname(configPath), { recursive: true });
    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
    console.log('Registered at', configPath);
@@ -54,12 +54,12 @@ Before starting the workflow, check if the MCP tools are available. Try calling 
 
 4. **Install the skill** (if not already):
    ```bash
-   mkdir -p ~/.claude/skills/docs-to-tutorial
-   ln -sf "$(pwd)/docs-to-tutorial/skill/SKILL.md" ~/.claude/skills/docs-to-tutorial/SKILL.md
+   mkdir -p ~/.claude/skills/docs-to-video
+   ln -sf "$(pwd)/docs-to-video/skill/SKILL.md" ~/.claude/skills/docs-to-video/SKILL.md
    ```
 
 5. **Tell the user to restart Claude Code:**
-   > Setup complete! Please restart Claude Code (quit and re-open) for the MCP tools to load, then run `/docs-to-tutorial <url>` again.
+   > Setup complete! Please restart Claude Code (quit and re-open) for the MCP tools to load, then run `/docs-to-video <url>` again.
 
 **STOP here if you had to run setup.** The MCP tools only load at Claude Code startup, so the user must restart before proceeding to Step 1.
 
@@ -864,7 +864,7 @@ export const Generated: React.FC<TutorialVideoProps> = ({ content, branding, aud
           src={staticFile(audio.music.staticPath)}
           volume={(f) => {
             const duckFrame = getSceneDuration(scenes[0], fps);
-            return interpolate(f, [duckFrame, duckFrame + 15], [0.4, 0.15], {
+            return interpolate(f, [duckFrame, duckFrame + 15], [0.25, 0.12], {
               extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
             });
           }}
@@ -953,7 +953,7 @@ export const Generated: React.FC<TutorialVideoProps> = ({ content, branding, aud
 - Duration: always from `getSceneDuration(timecodes, fps)` — NEVER hardcode `N * fps`
 - Clamp: Always use `extrapolateRight: 'clamp'` on interpolate
 - SafeZone: every scene wraps content in `<SafeZone>` — NEVER use bare `<AbsoluteFill>` with ad-hoc padding/width
-- Music volume: use `volume={(f) => ...}` callback for ducking — 0.4 during intro, fades to 0.15 when steps begin. Use `getSceneDuration(scenes[0], fps)` as the duck point.
+- Music volume: use `volume={(f) => ...}` callback for ducking — 0.25 during intro, fades to 0.12 when steps begin. Use `getSceneDuration(scenes[0], fps)` as the duck point.
 
 ---
 
@@ -973,7 +973,7 @@ export const Generated: React.FC<TutorialVideoProps> = ({ content, branding, aud
 9. **Scene durations use `getSceneDuration()` from timecodes** — no hardcoded `N * fps`
 10. **Scene components receive `sceneTimecodes` prop** — reveals use `getRevealFrame()` not fixed frame offsets
 11. **Every scene uses `<SafeZone>`** — no content placed directly in `<AbsoluteFill>` without the SafeZone wrapper
-12. **Music uses volume ducking** — `volume={(f) => ...}` callback, NOT a flat number. Louder (0.4) during intro, ducks to 0.15 when narration steps begin.
+12. **Music uses volume ducking** — `volume={(f) => ...}` callback, NOT a flat number. 0.25 during intro, ducks to 0.12 when narration steps begin.
 
 **Scene structure:**
 13. Has intro scene and summary scene

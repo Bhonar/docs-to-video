@@ -1,0 +1,42 @@
+# Source code (only dist/ is needed)
+mcp-server/src/
+mcp-server/node_modules/
+mcp-server/tsconfig.json
+mcp-server/package-lock.json
+
+# Compiled tests (not needed in package)
+mcp-server/dist/__tests__/
+mcp-server/dist/utils/__tests__/
+*.test.ts
+*.test.js
+*.test.d.ts
+*.d.ts.map
+*.js.map
+
+# Environment / secrets
+.env
+.env.local
+
+# Development
+.claude/
+.agents/
+.git/
+.github/
+.gitignore
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docs (README is included by npm automatically)
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+
+# Render artifacts
+out/
+
+# Template bloat
+remotion-template/node_modules/
+remotion-template/package-lock.json

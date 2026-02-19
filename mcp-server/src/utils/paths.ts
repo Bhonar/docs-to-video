@@ -41,5 +41,5 @@ export function getImagesDir(explicit?: string): string {
  */
 export function getOutputDir(): string {
   return process.env.REMOTION_OUTPUT_PATH
-    || path.join(os.homedir(), 'Videos', 'docs-to-tutorial');
+    || path.join(os.homedir(), 'Videos', 'docs-to-video');
 }
